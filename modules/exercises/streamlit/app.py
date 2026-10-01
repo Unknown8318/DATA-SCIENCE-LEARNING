@@ -74,6 +74,9 @@ selected_severities = st.sidebar.multiselect(
     default=available_severities
 )
 
+
+
+
 # Text input box for free-text string searching.
 # .strip() removes accidental leading/trailing spaces, and .lower() normalizes for case-insensitivity.
 search_query = st.sidebar.text_input("Search Message Keyword", "").strip().lower()
@@ -108,6 +111,81 @@ critical_count = len(filtered_df[filtered_df["severity"] == "CRITICAL"])
 col3.metric("Critical Alerts", critical_count)
 
 # Visual separator line between summary KPIs and the data table
+st.divider()
+
+# =============================================================================
+# 5.5 VISUAL ANALYTICS: CHARTS & FREQUENCY TRENDS
+# =============================================================================
+st.subheader("📈 Telemetry Trends & Breakdown")
+
+# Create two equal columns for side-by-side charts
+chart_col1, chart_col2, chart_col3 = st.columns(3)
+
+with chart_col1:
+    st.markdown("**Alert Distribution by Severity**")
+    
+    # 1. Bar Chart: Count occurrences of each severity level in the filtered slice
+    # .value_counts() produces a Series: index = severity label, value = count
+    severity_distribution = filtered_df["severity"].value_counts()
+    
+    if not severity_distribution.empty:
+        # st.bar_chart plots index on the X-axis and counts on the Y-axis
+        st.bar_chart(severity_distribution, color="#ff4b4b")
+    else:
+        st.info("No data available for the selected filters.")
+
+with chart_col2:
+    st.markdown("**Event Timeline (Activity over Time)**")
+    
+    if not filtered_df.empty:
+        # Copy to avoid SettingWithCopy warning and convert strings to datetime
+        timeline_df = filtered_df.copy()
+        timeline_df["timestamp"] = pd.to_datetime(timeline_df["timestamp"])
+        
+        # Sort chronologically, then count events per minute (or hour)
+        # Using .dt.floor('min') groups events into 1-minute bins
+        timeline_df["time_bucket"] = timeline_df["timestamp"].dt.floor("min")
+        events_over_time = timeline_df.groupby("time_bucket").size()
+        
+        # st.line_chart automatically renders the timestamp index along the X-axis
+        st.line_chart(events_over_time, color="#29b5e8")
+    else:
+        st.info("No timeline data to display.")
+
+with chart_col3:
+    st.markdown("**Assets Distribution by Frequency**")
+    
+    # st.radio is a Streamlit widget function used to display a set of radio buttons
+    # https://docs.streamlit.io/develop/api-reference/widgets/st.radio 
+    sort_choice = st.radio(
+        "Sort Order",
+        options=['Highest First', 'Lowest First'],
+        horizontal=True
+    )
+
+    is_ascending = (sort_choice == 'Lowest First')
+    
+    # 1. Calculate frequency series sorted by count
+    asset_distro = filtered_df["asset_id"].value_counts(ascending=is_ascending)
+
+    # 2. Convert the series to a clean 2-column DataFrame
+    asset_distro_df = asset_distro.reset_index()
+    asset_distro_df.columns = ["Asset", "Count"]
+    # 3. LOCK THE ORDER: Tell pandas and Vega-Lite to preserve this exact sequence
+    asset_distro_df["Asset"] = pd.Categorical(
+            asset_distro_df["Asset"], 
+            categories=asset_distro_df["Asset"], 
+            ordered=True
+        )
+
+
+
+    if not asset_distro_df.empty:
+        # Pass the DataFrame with explicit X and Y columns
+        st.bar_chart(asset_distro_df, x="Asset", y="Count", color="#024b44")
+    else:
+        st.info("No data available for the selected filters.")
+
 st.divider()
 
 
