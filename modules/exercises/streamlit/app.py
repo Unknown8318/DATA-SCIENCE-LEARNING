@@ -75,8 +75,6 @@ selected_severities = st.sidebar.multiselect(
 )
 
 
-
-
 # Text input box for free-text string searching.
 # .strip() removes accidental leading/trailing spaces, and .lower() normalizes for case-insensitivity.
 search_query = st.sidebar.text_input("Search Message Keyword", "").strip().lower()
@@ -177,8 +175,6 @@ with chart_col3:
             categories=asset_distro_df["Asset"], 
             ordered=True
         )
-
-
 
     if not asset_distro_df.empty:
         # Pass the DataFrame with explicit X and Y columns
